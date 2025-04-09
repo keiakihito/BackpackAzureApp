@@ -17,8 +17,8 @@ This will generate a cleaned and merged dataset as processed_data.csv, based on 
 
 ## 📊 Profile Report Preview
 
-If you'd like to view the generated data profile (processed_profile.html) directly in your browser without downloading the file, use the following preview link:
+If you'd like to view the generated data profile (`processed_profile.html`) in your browser without downloading the file, use the following preview link:
 
-🔗 View processed_profile.html in your browser
+🔗 [View processed_profile.html in browser](https://htmlpreview.github.io/?https://raw.githubusercontent.com/keiakihito/BackpackAzureApp/main/preprocess/processed_profile.html)
 
-This preview is powered by htmlpreview.github.io, a free static HTML viewer for GitHub repositories.
+This preview is powered by [htmlpreview.github.io](https://htmlpreview.github.io/), a free static HTML viewer for GitHub repositories.
