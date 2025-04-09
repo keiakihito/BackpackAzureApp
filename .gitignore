@@ -1,0 +1,69 @@
+# ====================
+# .NET / Blazor
+# ====================
+bin/
+obj/
+*.dll
+*.exe
+*.pdb
+*.cache
+*.log
+*.db-shm
+*.db-wal
+
+# Rider (JetBrains)
+.idea/
+*.sln.iml
+
+# VS Code / VS
+.vscode/
+*.user
+*.suo
+*.sln.docstates
+
+# User secrets
+secrets.json
+appsettings.Development.json
+
+# Build artifacts
+publish/
+dist/
+wwwroot/lib/
+
+# Hot reload cache
+**/.vs/
+
+# ====================
+# Python
+# ====================
+__pycache__/
+*.py[cod]
+*.pyo
+
+# Jupyter
+*.ipynb_checkpoints
+
+# Python virtual environments
+env/
+venv/
+.venv/
+ENV/
+
+# ====================
+# Data files
+# ====================
+*.csv
+!schema.csv  # ← 必要なら手動で残す
+
+# Large files (中間生成物)
+*.tsv
+*.parquet
+*.feather
+*.xlsx
+
+# ====================
+# OS-specific
+# ====================
+.DS_Store
+Thumbs.db
+
