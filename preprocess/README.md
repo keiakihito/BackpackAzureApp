@@ -11,11 +11,14 @@ Once the files are in place, you can generate a processed dataset used for AI an
 
 ```bash
 python combine_data.py
+```
 
-## 📊 Profile Report Preview　for combine_data
+This will generate a cleaned and merged dataset as processed_data.csv, based on the fields such as brand, price, waterproof, weight, and size. This data is used as the source for downstream AI analysis and visualization.
 
-If you'd like to view the generated data profile (`processed_profile.html`) in your browser without downloading the file, use the following preview link:
+## 📊 Profile Report Preview
 
-🔗 [View processed_profile.html in browser](https://htmlpreview.github.io/?https://raw.githubusercontent.com/keiakihito/BackpackAzureApp/main/preprocess/processed_profile.html)
+If you'd like to view the generated data profile (processed_profile.html) directly in your browser without downloading the file, use the following preview link:
 
-This preview is powered by [htmlpreview.github.io](https://htmlpreview.github.io/), a free static HTML viewer for GitHub repositories.
+🔗 View processed_profile.html in your browser
+
+This preview is powered by htmlpreview.github.io, a free static HTML viewer for GitHub repositories.
