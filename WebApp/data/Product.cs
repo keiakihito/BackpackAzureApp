@@ -4,30 +4,27 @@ namespace WebApp.Data;
 
 public class Product
 {
-    public int Id { get; set; }
+    public int id { get; set; }
 
     [Required]
-    public string Brand { get; set; } = string.Empty;
+    public string brand { get; set; } = string.Empty;
 
     [Range(0, 100000)]
-    public decimal Price { get; set; }
+    public decimal price { get; set; }
 
     [Range(0, 1000)]
-    public float WeightCapacityKg { get; set; }
+    public float weight_capacity_kg { get; set; }
 
-    public bool Waterproof { get; set; }
+    public bool waterproof { get; set; }
 
     [Required]
-    public string Size { get; set; } = string.Empty;
+    public string size { get; set; } = string.Empty;
 
-    public string Color { get; set; } = string.Empty;
-    public string Style { get; set; } = string.Empty;
+    public string color { get; set; } = string.Empty;
+    public string style { get; set; } = string.Empty;
 
     [Range(0, 20)]
-    public int Compartments { get; set; }
-
-    public DateTime ReleaseDate { get; set; }
-
-    [Required]
-    public string Category { get; set; } = string.Empty;
+    public int compartments { get; set; }
+    
+    
 }

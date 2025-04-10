@@ -1,0 +1,47 @@
+@page "/products"
+@using WebApp.Data
+@using Microsoft.EntityFrameworkCore
+@using Microsoft.AspNetCore.Components.QuickGrid
+@rendermode InteractiveServer
+
+<h3>🎒バックパック一覧🎒</h3>
+
+<QuickGrid TGridItem="Product"
+           ItemsProvider="@ProvideProductsAsync"
+           Pagination="@paginationState">
+    <PropertyColumn Property="@(p => p.id)" Title="ID" />
+    <PropertyColumn Property="@(p => p.brand)" Title="ブランド" />
+    <PropertyColumn Property="@(p => p.price)" Title="価格($)" />
+    <PropertyColumn Property="@(p => p.weight_capacity_kg)" Title="容量(kg)" />
+    <PropertyColumn Property="@(p => p.waterproof)" Title="撥水" />
+    <PropertyColumn Property="@(p => p.size)" Title="サイズ" />
+    <PropertyColumn Property="@(p => p.color)" Title="カラー" />
+    <PropertyColumn Property="@(p => p.style)" Title="スタイル" />
+    <PropertyColumn Property="@(p => p.compartments)" Title="収納スペース数" />
+</QuickGrid>
+
+<Paginator State="@paginationState" />
+
+@code {
+    private readonly PaginationState paginationState = new() { ItemsPerPage = 10 };
+
+    [Inject]
+    private AppDbContext Db { get; set; } = default!;
+
+    private async ValueTask<GridItemsProviderResult<Product>> ProvideProductsAsync(GridItemsProviderRequest<Product> request)
+    {
+        var query = Db.Products.AsNoTracking();
+        var total = await query.CountAsync();
+
+        var items = await query
+            .Skip(request.StartIndex)
+            .Take(request.Count ?? 10)
+            .ToListAsync();
+
+        return new GridItemsProviderResult<Product>
+        {
+            Items = items,
+            TotalItemCount = total
+        };
+    }
+}
