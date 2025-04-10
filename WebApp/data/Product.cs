@@ -6,10 +6,11 @@ public class Product
 {
     public int id { get; set; }
 
-    [Required]
+    [Required(ErrorMessage = "Brand is required.")]
+    [StringLength(50, MinimumLength = 2, ErrorMessage = "Brand must be between 2 and 50 characters.")]
     public string brand { get; set; } = string.Empty;
 
-    [Range(0, 100000)]
+    [Range(0, 100000, ErrorMessage = "Price must be between 0 and 100000.")]
     public decimal price { get; set; }
 
     [Range(0, 1000)]

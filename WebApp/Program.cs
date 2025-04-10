@@ -18,7 +18,12 @@ builder.Services.AddDbContext<AppDbContext>(options =>
 
 var app = builder.Build();
 
-
+// For TestQueries.cs
+using (var scope = app.Services.CreateScope())
+{
+    var db = scope.ServiceProvider.GetRequiredService<AppDbContext>();
+    WebApp.TestQueries.Run(db);
+}
 
 
 // Configure the HTTP request pipeline.
