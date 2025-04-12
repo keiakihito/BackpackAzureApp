@@ -1,6 +1,6 @@
 @page "/products/delete/{id:int}"
-@rendermode InteractiveServer
 @using WebApp.Data
+@rendermode InteractiveServer
 @inject AppDbContext Db
 @inject NavigationManager Nav
 
@@ -23,8 +23,7 @@ else
 }
 
 @code {
-    [Parameter]
-    public int id { get; set; }
+    [Parameter] public int id { get; set; }
 
     private Product? product;
 
@@ -44,4 +43,5 @@ else
     {
         Nav.NavigateTo("/products");
     }
+
 }

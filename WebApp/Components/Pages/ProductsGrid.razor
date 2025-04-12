@@ -1,7 +1,7 @@
 @page "/products"
-@using WebApp.Data
-@using Microsoft.EntityFrameworkCore
 @using Microsoft.AspNetCore.Components.QuickGrid
+@using Microsoft.EntityFrameworkCore
+@using WebApp.Data
 @rendermode InteractiveServer
 
 <h3>🎒バックパック一覧🎒</h3>
@@ -9,38 +9,37 @@
 <QuickGrid TGridItem="Product"
            ItemsProvider="@ProvideProductsAsync"
            Pagination="@paginationState">
-    <PropertyColumn Property="@(p => p.id)" Title="ID" />
-    <PropertyColumn Property="@(p => p.brand)" Title="ブランド" />
-    <PropertyColumn Property="@(p => p.price)" Title="価格($)" />
-    <PropertyColumn Property="@(p => p.weight_capacity_kg)" Title="容量(kg)" />
-    <PropertyColumn Property="@(p => p.waterproof)" Title="撥水" />
-    <PropertyColumn Property="@(p => p.size)" Title="サイズ" />
-    <PropertyColumn Property="@(p => p.color)" Title="カラー" />
-    <PropertyColumn Property="@(p => p.style)" Title="スタイル" />
-    <PropertyColumn Property="@(p => p.compartments)" Title="収納数" />
+    <PropertyColumn Property="@(p => p.id)" Title="ID"/>
+    <PropertyColumn Property="@(p => p.brand)" Title="ブランド"/>
+    <PropertyColumn Property="@(p => p.price)" Title="価格($)"/>
+    <PropertyColumn Property="@(p => p.weight_capacity_kg)" Title="容量(kg)"/>
+    <PropertyColumn Property="@(p => p.waterproof)" Title="撥水"/>
+    <PropertyColumn Property="@(p => p.size)" Title="サイズ"/>
+    <PropertyColumn Property="@(p => p.color)" Title="カラー"/>
+    <PropertyColumn Property="@(p => p.style)" Title="スタイル"/>
+    <PropertyColumn Property="@(p => p.compartments)" Title="収納数"/>
 
     <TemplateColumn Title="操作">
         <div class="d-flex gap-1">
-        <NavLink class="btn btn-sm btn-outline-primary" href="@($"/products/edit/{context.id}")">
-            編集
-        </NavLink>
-        <NavLink class="btn btn-sm btn-outline-danger" href="@($"/products/delete/{context.id}")">
-            削除
-        </NavLink>
-            </div>
+            <NavLink class="btn btn-sm btn-outline-primary" href="@($"/products/edit/{context.id}")">
+                編集
+            </NavLink>
+            <NavLink class="btn btn-sm btn-outline-danger" href="@($"/products/delete/{context.id}")">
+                削除
+            </NavLink>
+        </div>
     </TemplateColumn>
 
 </QuickGrid>
 
 
 
-<Paginator State="@paginationState" />
+<Paginator State="@paginationState"/>
 
 @code {
     private readonly PaginationState paginationState = new() { ItemsPerPage = 10 };
 
-    [Inject]
-    private AppDbContext Db { get; set; } = default!;
+    [Inject] private AppDbContext Db { get; set; } = default!;
 
     private async ValueTask<GridItemsProviderResult<Product>> ProvideProductsAsync(GridItemsProviderRequest<Product> request)
     {
@@ -58,4 +57,5 @@
             TotalItemCount = total
         };
     }
+
 }
