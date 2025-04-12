@@ -1,0 +1,45 @@
+/* Add these styles to your CSS file */
+
+.chart-container {
+    min-height: 350px;
+    padding: 15px;
+}
+
+#chart-container {
+    width: 100%;
+    height: 100%;
+}
+
+/* Styling for the AI response */
+.card-body p {
+    white-space: pre-line;
+    line-height: 1.6;
+}
+
+/* Animation for loading state */
+.spinner-border {
+    width: 1rem;
+    height: 1rem;
+}
+
+.btn:disabled {
+    cursor: not-allowed;
+}
+
+/* Enhance text area appearance */
+.form-control {
+    border-radius: 4px;
+    resize: vertical;
+}
+
+.form-control:focus {
+    box-shadow: 0 0 0 0.25rem rgba(13, 110, 253, 0.25);
+    border-color: #86b7fe;
+}
+
+/* Responsive adjustments */
+@media (max-width: 768px) {
+    .col-md-4, .col-md-8 {
+        margin-bottom: 1.5rem;
+    }
+}

@@ -1,0 +1,188 @@
+@page "/ai-assistant"
+@using Microsoft.AspNetCore.Components.Forms
+@inject HttpClient Http
+@inject IJSRuntime JSRuntime
+@rendermode InteractiveServer
+
+<PageTitle>AI Assistant</PageTitle>
+
+<h3>Ask the AI Assistant</h3>
+
+<div class="row">
+    <div class="col-md-8">
+        <div class="card">
+            <div class="card-body">
+                <EditForm Model="@_queryModel" OnSubmit="@HandleSubmit" FormName="aiForm">
+                    <div class="mb-3">
+                        <label for="query" class="form-label">What would you like to ask?</label>
+                        <InputTextArea id="query" class="form-control" @bind-Value="_queryModel.Query" rows="3" />
+                    </div>
+                    <button type="submit" class="btn btn-primary" disabled="@_isLoading">
+                        @if (_isLoading)
+                        {
+                            <span class="spinner-border spinner-border-sm" role="status" aria-hidden="true"></span>
+                            <span> Processing...</span>
+                        }
+                        else
+                        {
+                            <span>Ask AI</span>
+                        }
+                    </button>
+                </EditForm>
+            </div>
+        </div>
+
+        @if (!string.IsNullOrEmpty(_response))
+        {
+            <div class="card mt-4">
+                <div class="card-header">
+                    <h5 class="mb-0">AI Response</h5>
+                </div>
+                <div class="card-body">
+                    <p>@((MarkupString)_response)</p>
+                </div>
+            </div>
+        }
+    </div>
+    
+    <div class="col-md-4">
+        @if (_showChart)
+        {
+            <div class="card">
+                <div class="card-header">
+                    <h5 class="mb-0">Analysis</h5>
+                </div>
+                <div class="card-body chart-container">
+                    <!-- Chart will be rendered here -->
+                    <div id="chart-container"></div>
+                </div>
+            </div>
+        }
+    </div>
+</div>
+
+@code {
+    private QueryModel _queryModel = new();
+    private string _response = string.Empty;
+    private bool _isLoading = false;
+    private bool _showChart = false;
+
+    private class QueryModel
+    {
+        public string Query { get; set; } = string.Empty;
+    }
+
+    
+    // ~~~~~~~
+    // private async Task HandleSubmit()
+    // {
+    //     if (string.IsNullOrWhiteSpace(_queryModel.Query))
+    //         return;
+    //
+    //     _isLoading = true;
+    //     
+    //     try
+    //     {
+    //         // Call your Azure OpenAI service here
+    //         // Example code (you'll need to replace with your actual API call):
+    //         /*
+    //         var request = new HttpRequestMessage(HttpMethod.Post, "YOUR_AZURE_OPENAI_ENDPOINT");
+    //         request.Headers.Add("api-key", "YOUR_API_KEY");
+    //         
+    //         var requestBody = new
+    //         {
+    //             messages = new[]
+    //             {
+    //                 new { role = "system", content = "You are a helpful assistant." },
+    //                 new { role = "user", content = _queryModel.Query }
+    //             },
+    //             max_tokens = 1000
+    //         };
+    //         
+    //         request.Content = new StringContent(
+    //             System.Text.Json.JsonSerializer.Serialize(requestBody),
+    //             System.Text.Encoding.UTF8,
+    //             "application/json");
+    //             
+    //         var response = await Http.SendAsync(request);
+    //         var responseContent = await response.Content.ReadAsStringAsync();
+    //         
+    //         // Parse the response and extract what you need
+    //         var responseObject = System.Text.Json.JsonSerializer.Deserialize<YourResponseType>(responseContent);
+    //         _response = responseObject.choices[0].message.content;
+    //         */
+    //         
+    //         // For demo purposes, we'll just simulate a response
+    //         await Task.Delay(1500); // Simulate API delay
+    //         _response = "Based on your query, I've analyzed the data and found some interesting patterns. The results show a significant correlation between X and Y factors. Here's a breakdown of the key findings...";
+    //         
+    //         // Show chart after response is received
+    //         _showChart = true;
+    //         
+    //         // If you need to render a chart, you can call JavaScript here
+    //         await JSRuntime.InvokeVoidAsync("renderChart");
+    //     }
+    //     catch (Exception ex)
+    //     {
+    //         _response = $"Error: {ex.Message}";
+    //     }
+    //     finally
+    //     {
+    //         _isLoading = false;
+    //     }
+    // }
+    //
+    // protected override async Task OnAfterRenderAsync(bool firstRender)
+    // {
+    //     if (firstRender)
+    //     {
+    //         // Initialize any JavaScript libraries or components here
+    //         await JSRuntime.InvokeVoidAsync("initChartLibrary");
+    //     }
+    // }
+    // ~~~~~~~
+    
+    
+    // For test
+    private async Task HandleSubmit()
+    {
+        if (string.IsNullOrWhiteSpace(_queryModel.Query))
+            return;
+
+        _isLoading = true;
+
+        try
+        {
+            await Task.Delay(1000); // ダミーAPI処理
+
+            _response = $"✅ You asked: {_queryModel.Query}";
+            _showChart = true;
+
+            StateHasChanged(); // 再描画を保証
+        }
+        catch (Exception ex)
+        {
+            _response = $"Error: {ex.Message}";
+        }
+        finally
+        {
+            _isLoading = false;
+        }
+    }
+
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (firstRender)
+        {
+            await JSRuntime.InvokeVoidAsync("initChartLibrary");
+        }
+
+        if (_showChart)
+        {
+            await JSRuntime.InvokeVoidAsync("renderChart");
+        }
+    }
+
+    
+    //end of code
+}　

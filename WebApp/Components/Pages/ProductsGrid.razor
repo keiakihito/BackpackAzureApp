@@ -11,8 +11,8 @@
            Pagination="@paginationState">
     <PropertyColumn Property="@(p => p.id)" Title="ID"/>
     <PropertyColumn Property="@(p => p.brand)" Title="ブランド"/>
-    <PropertyColumn Property="@(p => p.price)" Title="価格($)"/>
-    <PropertyColumn Property="@(p => p.weight_capacity_kg)" Title="容量(kg)"/>
+    <PropertyColumn Property="@(p => p.price.ToString("F0"))" Title="価格($)"/>
+    <PropertyColumn Property="@(p => p.weight_capacity_kg.ToString("F2"))" Title="容量(kg)"/>
     <PropertyColumn Property="@(p => p.waterproof)" Title="撥水"/>
     <PropertyColumn Property="@(p => p.size)" Title="サイズ"/>
     <PropertyColumn Property="@(p => p.color)" Title="カラー"/>
@@ -20,12 +20,12 @@
     <PropertyColumn Property="@(p => p.compartments)" Title="収納数"/>
 
     <TemplateColumn Title="操作">
-        <div class="d-flex gap-1">
-            <NavLink class="btn btn-sm btn-outline-primary" href="@($"/products/edit/{context.id}")">
-                編集
+        <div class="d-flex gap-1　flex-nowrap">
+            <NavLink class="btn btn-sm btn-outline-primary w-auto" href="@($"/products/edit/{context.id}")">
+                Edit
             </NavLink>
-            <NavLink class="btn btn-sm btn-outline-danger" href="@($"/products/delete/{context.id}")">
-                削除
+            <NavLink class="btn btn-sm btn-outline-danger w-auto" href="@($"/products/delete/{context.id}")">
+                Delete
             </NavLink>
         </div>
     </TemplateColumn>
