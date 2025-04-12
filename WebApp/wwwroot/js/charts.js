@@ -33,6 +33,9 @@ window.renderChart = function (data) {
     chartWrapper.style.alignItems = 'flex-end';
     chartWrapper.style.gap = '12px';
     chartWrapper.style.padding = '10px';
+    chartWrapper.style.maxWidth = '100%';
+    chartWrapper.style.overflowX = 'auto';
+
 
     // Create bars
     sampleData.forEach(item => {

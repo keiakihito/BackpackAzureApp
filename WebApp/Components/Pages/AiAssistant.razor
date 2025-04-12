@@ -8,8 +8,10 @@
 
 <h3>Ask the AI Assistant</h3>
 
+<!-- Main content in a single column layout -->
 <div class="row">
     <div class="col-md-8">
+        <!-- Input Form -->
         <div class="card">
             <div class="card-body">
                 <EditForm Model="@_queryModel" OnSubmit="@HandleSubmit" FormName="aiForm">
@@ -32,6 +34,7 @@
             </div>
         </div>
 
+        <!-- AI Response -->
         @if (!string.IsNullOrEmpty(_response))
         {
             <div class="card mt-4">
@@ -42,25 +45,23 @@
                     <p>@((MarkupString)_response)</p>
                 </div>
             </div>
-        }
-    </div>
-    
-    <div class="col-md-4">
-        @if (_showChart)
-        {
-            <div class="card">
-                <div class="card-header">
-                    <h5 class="mb-0">Analysis</h5>
+
+            <!-- Analysis Section - Now below the response -->
+            @if (_showChart)
+            {
+                <div class="card mt-4">
+                    <div class="card-header">
+                        <h5 class="mb-0">Analysis</h5>
+                    </div>
+                    <div class="card-body chart-container">
+                        <!-- Chart will be rendered here -->
+                        <div id="chart-container"></div>
+                    </div>
                 </div>
-                <div class="card-body chart-container">
-                    <!-- Chart will be rendered here -->
-                    <div id="chart-container"></div>
-                </div>
-            </div>
+            }
         }
     </div>
 </div>
-
 @code {
     private QueryModel _queryModel = new();
     private string _response = string.Empty;
