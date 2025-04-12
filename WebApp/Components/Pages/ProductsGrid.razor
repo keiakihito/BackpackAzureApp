@@ -17,8 +17,22 @@
     <PropertyColumn Property="@(p => p.size)" Title="サイズ" />
     <PropertyColumn Property="@(p => p.color)" Title="カラー" />
     <PropertyColumn Property="@(p => p.style)" Title="スタイル" />
-    <PropertyColumn Property="@(p => p.compartments)" Title="収納スペース数" />
+    <PropertyColumn Property="@(p => p.compartments)" Title="収納数" />
+
+    <TemplateColumn Title="操作">
+        <div class="d-flex gap-1">
+        <NavLink class="btn btn-sm btn-outline-primary" href="@($"/products/edit/{context.id}")">
+            編集
+        </NavLink>
+        <NavLink class="btn btn-sm btn-outline-danger" href="@($"/products/delete/{context.id}")">
+            削除
+        </NavLink>
+            </div>
+    </TemplateColumn>
+
 </QuickGrid>
+
+
 
 <Paginator State="@paginationState" />
 
