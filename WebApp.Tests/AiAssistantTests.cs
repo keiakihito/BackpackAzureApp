@@ -12,12 +12,14 @@ public class AiAssistantTests
 
     public AiAssistantTests()
     {
+        // Read Endpoint, ApiKey, Deployment from appsetttings
         var config = new ConfigurationBuilder()
             .AddJsonFile("appsettings.Development.json")
             .Build();
 
         _deployment = config["AzureOpenAI:Deployment"];
-
+        
+        // Set ApiKey and Endpoint to HttpClient
         _client = new HttpClient
         {
             BaseAddress = new System.Uri(config["AzureOpenAI:Endpoint"])

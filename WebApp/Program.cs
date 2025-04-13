@@ -14,9 +14,14 @@ builder.Services.AddHttpClient();
 builder.Services.AddRazorComponents()
     .AddInteractiveServerComponents();
 
-// Make a blue print for client instance named by AzureOpenAI 
+// Make a blueprint for client instance named by AzureOpenAI
+/*AKA Factory register, which enables client object(AiAssistant.razor) to reuse it.
+If not Factory register, the client object is created by "new" every time(Socket Memory leak)
+and hard to extend for other URI.
+*/
 builder.Services.AddHttpClient("AzureOpenAI", client =>
 {
+    // Dependency Injection for various class, calling DI container which creates and manages objects 
     client.BaseAddress = new Uri(builder.Configuration["AzureOpenAI:Endpoint"]);
     client.DefaultRequestHeaders.Add("api-key", builder.Configuration["AzureOpenAI:ApiKey"]);
 });

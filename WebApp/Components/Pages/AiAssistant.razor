@@ -75,10 +75,8 @@
     }
 
     
-    // ~~~~~~~
     private async Task HandleSubmit()
     {
-        // Console.WriteLine("HttpClient.BaseAddress at start: " + Http.BaseAddress);
 
         if (string.IsNullOrWhiteSpace(_queryModel.Query))
             return;
@@ -90,6 +88,7 @@
         try
         {
             var deployment = "backpack-gpt-4o-mini"; // or read from config
+            // Set up request API,  BassAddress + relative URI
             var request = new HttpRequestMessage(HttpMethod.Post,
                 $"/openai/deployments/{deployment}/chat/completions?api-version=2025-01-01-preview");
 
@@ -98,11 +97,28 @@
             {
                 messages = new[]
                 {
-                    new { role = "system", content = "You are a helpful assistant. Return concise answers." },
+                    new { role = "system", content =
+                        @"You are a helpful assistant with access to the following product data:
+
+                        Columns:
+                        - brand (string)
+                        - price (decimal)
+                        - weight_capacity_kg (float)
+                        - waterproof (true/false)
+                        - size (string)
+                        - color (string)
+                        - style (string)
+                        - compartments (int)
+
+                        Respond to user questions using the data structure above. If possible, use tables, bullet points, or concise lists in your answers.
+                        Please avoid markdown tables. Use bullet points or concise sentences."
+                        
+
+                    },
                     new { role = "user", content = _queryModel.Query }
                 },
-                max_tokens = 1000,
-                temperature = 0.7
+                max_tokens = 800,
+                temperature = 0.5
             };
 
             request.Content = new StringContent(
@@ -116,9 +132,9 @@
             var content = await response.Content.ReadAsStringAsync();
             
             // For debug
-            Console.WriteLine("Request URI: " + request.RequestUri);
-            Console.WriteLine("BaseAddress: " + client.BaseAddress);
-            Console.WriteLine("Azure OpenAI Response: " + content);
+            // Console.WriteLine("Request URI: " + request.RequestUri);
+            // Console.WriteLine("BaseAddress: " + client.BaseAddress);
+            // Console.WriteLine("Azure OpenAI Response: " + content);
 
 
             if (!response.IsSuccessStatusCode)
@@ -151,51 +167,8 @@
             _isLoading = false;
         }
     }
-
-    // ~~~~~~~
     
     
-    // ~~~~~~~
-    // For test
-    // private async Task HandleSubmit()
-    // {
-    //     if (string.IsNullOrWhiteSpace(_queryModel.Query))
-    //         return;
-    //
-    //     _isLoading = true;
-    //
-    //     try
-    //     {
-    //         await Task.Delay(1000); // ダミーAPI処理
-    //
-    //         _response = $"✅ You asked: {_queryModel.Query}";
-    //         _showChart = true;
-    //
-    //         StateHasChanged(); // 再描画を保証
-    //     }
-    //     catch (Exception ex)
-    //     {
-    //         _response = $"Error: {ex.Message}";
-    //     }
-    //     finally
-    //     {
-    //         _isLoading = false;
-    //     }
-    // }
-    //
-    // protected override async Task OnAfterRenderAsync(bool firstRender)
-    // {
-    //     if (firstRender)
-    //     {
-    //         await JSRuntime.InvokeVoidAsync("initChartLibrary");
-    //     }
-    //
-    //     if (_showChart)
-    //     {
-    //         await JSRuntime.InvokeVoidAsync("renderChart");
-    //     }
-    // }
-    // ~~~~~~~
 
     
     //end of code
