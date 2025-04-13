@@ -1,6 +1,7 @@
 @page "/ai-assistant"
 @using Microsoft.AspNetCore.Components.Forms
-@inject HttpClient Http
+@* @inject HttpClient Http *@
+@inject IHttpClientFactory HttpClientFactory
 @inject IJSRuntime JSRuntime
 @rendermode InteractiveServer
 
@@ -75,53 +76,102 @@
 
     
     // ~~~~~~~
+    private async Task HandleSubmit()
+    {
+        // Console.WriteLine("HttpClient.BaseAddress at start: " + Http.BaseAddress);
+
+        if (string.IsNullOrWhiteSpace(_queryModel.Query))
+            return;
+
+        _isLoading = true;
+        _response = string.Empty;
+        _showChart = false;
+
+        try
+        {
+            var deployment = "backpack-gpt-4o-mini"; // or read from config
+            var request = new HttpRequestMessage(HttpMethod.Post,
+                $"/openai/deployments/{deployment}/chat/completions?api-version=2025-01-01-preview");
+
+
+            var requestBody = new
+            {
+                messages = new[]
+                {
+                    new { role = "system", content = "You are a helpful assistant. Return concise answers." },
+                    new { role = "user", content = _queryModel.Query }
+                },
+                max_tokens = 1000,
+                temperature = 0.7
+            };
+
+            request.Content = new StringContent(
+                System.Text.Json.JsonSerializer.Serialize(requestBody),
+                System.Text.Encoding.UTF8,
+                "application/json");
+            
+            // Instanciate   AzureOpenAI obj with  "AzureOpenAI" defined in the Project.cs
+            var client = HttpClientFactory.CreateClient("AzureOpenAI");
+            var response = await client.SendAsync(request);
+            var content = await response.Content.ReadAsStringAsync();
+            
+            // For debug
+            Console.WriteLine("Request URI: " + request.RequestUri);
+            Console.WriteLine("BaseAddress: " + client.BaseAddress);
+            Console.WriteLine("Azure OpenAI Response: " + content);
+
+
+            if (!response.IsSuccessStatusCode)
+            {
+                _response = $"API Error: {response.StatusCode}\n{content}";
+            }
+            else
+            {
+                var json = System.Text.Json.JsonDocument.Parse(content);
+                _response = json.RootElement
+                    .GetProperty("choices")[0]
+                    .GetProperty("message")
+                    .GetProperty("content")
+                    .GetString();
+
+                // 表示切り替え
+                _showChart = _response.Contains("chart", StringComparison.OrdinalIgnoreCase);
+
+                // JSチャート描画呼び出し
+                if (_showChart)
+                    await JSRuntime.InvokeVoidAsync("renderChart");
+            }
+        }
+        catch (Exception ex)
+        {
+            _response = $"Error: {ex.Message}";
+        }
+        finally
+        {
+            _isLoading = false;
+        }
+    }
+
+    // ~~~~~~~
+    
+    
+    // ~~~~~~~
+    // For test
     // private async Task HandleSubmit()
     // {
     //     if (string.IsNullOrWhiteSpace(_queryModel.Query))
     //         return;
     //
     //     _isLoading = true;
-    //     
+    //
     //     try
     //     {
-    //         // Call your Azure OpenAI service here
-    //         // Example code (you'll need to replace with your actual API call):
-    //         /*
-    //         var request = new HttpRequestMessage(HttpMethod.Post, "YOUR_AZURE_OPENAI_ENDPOINT");
-    //         request.Headers.Add("api-key", "YOUR_API_KEY");
-    //         
-    //         var requestBody = new
-    //         {
-    //             messages = new[]
-    //             {
-    //                 new { role = "system", content = "You are a helpful assistant." },
-    //                 new { role = "user", content = _queryModel.Query }
-    //             },
-    //             max_tokens = 1000
-    //         };
-    //         
-    //         request.Content = new StringContent(
-    //             System.Text.Json.JsonSerializer.Serialize(requestBody),
-    //             System.Text.Encoding.UTF8,
-    //             "application/json");
-    //             
-    //         var response = await Http.SendAsync(request);
-    //         var responseContent = await response.Content.ReadAsStringAsync();
-    //         
-    //         // Parse the response and extract what you need
-    //         var responseObject = System.Text.Json.JsonSerializer.Deserialize<YourResponseType>(responseContent);
-    //         _response = responseObject.choices[0].message.content;
-    //         */
-    //         
-    //         // For demo purposes, we'll just simulate a response
-    //         await Task.Delay(1500); // Simulate API delay
-    //         _response = "Based on your query, I've analyzed the data and found some interesting patterns. The results show a significant correlation between X and Y factors. Here's a breakdown of the key findings...";
-    //         
-    //         // Show chart after response is received
+    //         await Task.Delay(1000); // ダミーAPI処理
+    //
+    //         _response = $"✅ You asked: {_queryModel.Query}";
     //         _showChart = true;
-    //         
-    //         // If you need to render a chart, you can call JavaScript here
-    //         await JSRuntime.InvokeVoidAsync("renderChart");
+    //
+    //         StateHasChanged(); // 再描画を保証
     //     }
     //     catch (Exception ex)
     //     {
@@ -137,52 +187,15 @@
     // {
     //     if (firstRender)
     //     {
-    //         // Initialize any JavaScript libraries or components here
     //         await JSRuntime.InvokeVoidAsync("initChartLibrary");
+    //     }
+    //
+    //     if (_showChart)
+    //     {
+    //         await JSRuntime.InvokeVoidAsync("renderChart");
     //     }
     // }
     // ~~~~~~~
-    
-    
-    // For test
-    private async Task HandleSubmit()
-    {
-        if (string.IsNullOrWhiteSpace(_queryModel.Query))
-            return;
-
-        _isLoading = true;
-
-        try
-        {
-            await Task.Delay(1000); // ダミーAPI処理
-
-            _response = $"✅ You asked: {_queryModel.Query}";
-            _showChart = true;
-
-            StateHasChanged(); // 再描画を保証
-        }
-        catch (Exception ex)
-        {
-            _response = $"Error: {ex.Message}";
-        }
-        finally
-        {
-            _isLoading = false;
-        }
-    }
-
-    protected override async Task OnAfterRenderAsync(bool firstRender)
-    {
-        if (firstRender)
-        {
-            await JSRuntime.InvokeVoidAsync("initChartLibrary");
-        }
-
-        if (_showChart)
-        {
-            await JSRuntime.InvokeVoidAsync("renderChart");
-        }
-    }
 
     
     //end of code

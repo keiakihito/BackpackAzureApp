@@ -14,6 +14,14 @@ builder.Services.AddHttpClient();
 builder.Services.AddRazorComponents()
     .AddInteractiveServerComponents();
 
+// Make a blue print for client instance named by AzureOpenAI 
+builder.Services.AddHttpClient("AzureOpenAI", client =>
+{
+    client.BaseAddress = new Uri(builder.Configuration["AzureOpenAI:Endpoint"]);
+    client.DefaultRequestHeaders.Add("api-key", builder.Configuration["AzureOpenAI:ApiKey"]);
+});
+
+
 // Add DbContext service
 builder.Services.AddDbContext<AppDbContext>(options =>
     options.UseSqlServer(builder.Configuration.GetConnectionString("DefaultConnection"))
