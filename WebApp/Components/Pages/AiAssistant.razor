@@ -171,8 +171,121 @@
 //         }
 //     } // end of step 1
 
-    //Step 2 (SQL translation)
-    private async Task HandleSubmit()
+
+
+//     // ~~~~~~~
+//     //Step 2 (SQL translation)
+//     private async Task HandleSubmit()
+// {
+//     if (string.IsNullOrWhiteSpace(_queryModel.Query)) return;
+//
+//     _isLoading = true;
+//     _response = string.Empty;
+//     _showChart = false;
+//
+//     try
+//     {
+//         // ① OpenAI への SQL生成用プロンプト
+//         var deployment = "backpack-gpt-4o-mini";
+//         var request = new HttpRequestMessage(HttpMethod.Post,
+//             $"/openai/deployments/{deployment}/chat/completions?api-version=2025-01-01-preview");
+//
+//         var requestBody = new
+//         {
+//             messages = new[]
+//             {
+//                 new { role = "system", content = @"
+//                     You are a SQL assistant that generates T-SQL queries for Microsoft SQL Server. 
+//                     Generate a single SQL SELECT query based on the user's request. 
+//                     Use the following table schema:
+//
+//                     Table: Products
+//                     Columns:
+//                     - brand (string)
+//                     - price (decimal)
+//                     - weight_capacity_kg (float)
+//                     - waterproof (bool)
+//                     - size (string)
+//                     - color (string) — English only (e.g., 'Blue', 'Red', 'Black')
+//                     - style (string)
+//                     - compartments (int)
+//
+//                     Use only English values. Do not use translated or localized terms.  
+//                     Only return the SQL query. Do not include explanations or markdown formatting.
+//                     When selecting top N products ordered by price, avoid repeating rows with the same price. If multiple products share the same price, return only one per price."
+//                 },
+//
+//                 new { role = "user", content = _queryModel.Query }
+//             },
+//             max_tokens = 400,
+//             temperature = 0.3
+//         };
+//
+//         request.Content = new StringContent(
+//             JsonSerializer.Serialize(requestBody),
+//             Encoding.UTF8,
+//             "application/json");
+//
+//         var client = HttpClientFactory.CreateClient("AzureOpenAI");
+//         var response = await client.SendAsync(request);
+//         var content = await response.Content.ReadAsStringAsync();
+//
+//         if (!response.IsSuccessStatusCode)
+//         {
+//             _response = $"API Error: {response.StatusCode}\n{content}";
+//             return;
+//         }
+//
+//         // ② SQLだけを抽出
+//         var json = JsonDocument.Parse(content);
+//         var sql = json.RootElement
+//             .GetProperty("choices")[0]
+//             .GetProperty("message")
+//             .GetProperty("content")
+//             .GetString();
+//
+//         Console.WriteLine("Generated SQL: " + sql);
+//
+//         // ③ SQLをAzure SQLで実行
+//         using var conn = new SqlConnection(_config.GetConnectionString("DefaultConnection"));
+//         await conn.OpenAsync();
+//
+//         using var cmd = new SqlCommand(sql, conn);
+//         using var reader = await cmd.ExecuteReaderAsync();
+//
+//         // ④ 結果を動的に読み込む（列数・型に依存しない）
+//         var results = new List<string>();
+//         while (await reader.ReadAsync())
+//         {
+//             var row = new List<string>();
+//             for (int i = 0; i < reader.FieldCount; i++)
+//             {
+//                 var name = reader.GetName(i);
+//                 var value = reader.IsDBNull(i) ? "null" : reader.GetValue(i)?.ToString();
+//                 row.Add($"{name}: {value}");
+//             }
+//             results.Add(string.Join(", ", row));
+//         }
+//
+//         _response = results.Count > 0
+//             ? string.Join("<br/>", results)
+//             : "該当するデータは見つかりませんでした。";
+//     }
+//     catch (Exception ex)
+//     {
+//         _response = $"Error: {ex.Message}";
+//     }
+//     finally
+//     {
+//         _isLoading = false;
+//     }
+// }
+// //  end of step 2
+// // ~~~~~~~
+//     
+
+// Step 2 and 3 (SQL文の結果を自然言語に)
+private async Task HandleSubmit()
 {
     if (string.IsNullOrWhiteSpace(_queryModel.Query)) return;
 
@@ -182,8 +295,9 @@
 
     try
     {
-        // ① OpenAI への SQL生成用プロンプト
         var deployment = "backpack-gpt-4o-mini";
+
+        // Step 2: ユーザーの質問からSQL生成
         var request = new HttpRequestMessage(HttpMethod.Post,
             $"/openai/deployments/{deployment}/chat/completions?api-version=2025-01-01-preview");
 
@@ -198,6 +312,7 @@
 
                     Table: Products
                     Columns:
+                    - id (int)
                     - brand (string)
                     - price (decimal)
                     - weight_capacity_kg (float)
@@ -209,9 +324,8 @@
 
                     Use only English values. Do not use translated or localized terms.  
                     Only return the SQL query. Do not include explanations or markdown formatting.
-                    When selecting top N products ordered by price, avoid repeating rows with the same price. If multiple products share the same price, return only one per price."
-                },
-
+                    When selecting top N products ordered by price, avoid repeating rows with the same price. If multiple products share the same price, return only one per price.
+                    When filtering by numeric values like price, use a range (e.g., BETWEEN 149.9 AND 150.1) instead of exact match." },
                 new { role = "user", content = _queryModel.Query }
             },
             max_tokens = 400,
@@ -233,40 +347,90 @@
             return;
         }
 
-        // ② SQLだけを抽出
         var json = JsonDocument.Parse(content);
         var sql = json.RootElement
             .GetProperty("choices")[0]
             .GetProperty("message")
             .GetProperty("content")
-            .GetString();
+            .GetString()
+            .Replace("```sql", "").Replace("```", "").Trim();
 
         Console.WriteLine("Generated SQL: " + sql);
 
-        // ③ SQLをAzure SQLで実行
         using var conn = new SqlConnection(_config.GetConnectionString("DefaultConnection"));
         await conn.OpenAsync();
 
         using var cmd = new SqlCommand(sql, conn);
         using var reader = await cmd.ExecuteReaderAsync();
 
-        // ④ 結果を動的に読み込む（列数・型に依存しない）
-        var results = new List<string>();
+        var resultsList = new List<Dictionary<string, string>>();
         while (await reader.ReadAsync())
         {
-            var row = new List<string>();
+            var row = new Dictionary<string, string>();
             for (int i = 0; i < reader.FieldCount; i++)
             {
                 var name = reader.GetName(i);
                 var value = reader.IsDBNull(i) ? "null" : reader.GetValue(i)?.ToString();
-                row.Add($"{name}: {value}");
+                row[name] = value;
             }
-            results.Add(string.Join(", ", row));
+            resultsList.Add(row);
         }
 
-        _response = results.Count > 0
-            ? string.Join("<br/>", results)
-            : "該当するデータは見つかりませんでした。";
+        if (resultsList.Count == 0)
+        {
+            _response = "該当するデータは見つかりませんでした。";
+            return;
+        }
+
+        // Step 3: 集計クエリかどうかを検出し、結果を直接返す（AIを使わず）
+        if (sql.ToUpper().Contains("COUNT(") || sql.ToUpper().Contains("AVG(") || sql.ToUpper().Contains("SUM("))
+        {
+            var firstRow = resultsList.First();
+            var responseParts = firstRow.Select(kv => $"{kv.Key}: {kv.Value}");
+            _response = string.Join(", ", responseParts);
+            return;
+        }
+
+        var resultJson = JsonSerializer.Serialize(resultsList, new JsonSerializerOptions { WriteIndented = true });
+
+        // Step 3: データをOpenAIに要約させる
+        var summaryRequest = new HttpRequestMessage(HttpMethod.Post,
+            $"/openai/deployments/{deployment}/chat/completions?api-version=2025-01-01-preview");
+
+        var summaryBody = new
+        {
+            messages = new[]
+            {
+                new { role = "system", content = @"You are a helpful assistant. Summarize the following product data for a Japanese user. 
+Include the product ID in your explanation. Use bullet points or short sentences to clearly explain the products and highlight any notable differences. When describing prices, use 'dollars' or '$' as the unit. Do not convert currencies." },
+                new { role = "user", content = $"以下のデータを説明してください:\n{resultJson}" }
+            },
+            max_tokens = 600,
+            temperature = 0.5
+        };
+
+        summaryRequest.Content = new StringContent(
+            JsonSerializer.Serialize(summaryBody),
+            Encoding.UTF8,
+            "application/json");
+
+        var summaryResponse = await client.SendAsync(summaryRequest);
+        var summaryContent = await summaryResponse.Content.ReadAsStringAsync();
+
+        if (!summaryResponse.IsSuccessStatusCode)
+        {
+            _response = $"Summary Error: {summaryResponse.StatusCode}\n{summaryContent}";
+            return;
+        }
+
+        var summaryJson = JsonDocument.Parse(summaryContent);
+        var summary = summaryJson.RootElement
+            .GetProperty("choices")[0]
+            .GetProperty("message")
+            .GetProperty("content")
+            .GetString();
+
+        _response = summary;
     }
     catch (Exception ex)
     {
@@ -278,8 +442,6 @@
     }
 }
 
-    
-    
     
     
 
