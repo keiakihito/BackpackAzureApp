@@ -1,7 +1,10 @@
 @page "/ai-assistant"
+@using System.Text
+@using System.Text.Json
 @using Microsoft.AspNetCore.Components.Forms
-@* @inject HttpClient Http *@
+@using Microsoft.Data.SqlClient
 @inject IHttpClientFactory HttpClientFactory
+@inject IConfiguration _config
 @inject IJSRuntime JSRuntime
 @rendermode InteractiveServer
 
@@ -74,99 +77,209 @@
         public string Query { get; set; } = string.Empty;
     }
 
-    
+//     // Step 1 (Return only natural language)
+//     private async Task HandleSubmit()
+//     {
+//
+//         if (string.IsNullOrWhiteSpace(_queryModel.Query))
+//             return;
+//
+//         _isLoading = true;
+//         _response = string.Empty;
+//         _showChart = false;
+//
+//         try
+//         {
+//             var deployment = "backpack-gpt-4o-mini"; // or read from config
+//             // Set up request API,  BassAddress + relative URI
+//             var request = new HttpRequestMessage(HttpMethod.Post,
+//                 $"/openai/deployments/{deployment}/chat/completions?api-version=2025-01-01-preview");
+//
+//
+//             var requestBody = new
+//             {
+//                 messages = new[]
+//                 {
+//                     new { role = "system", content =
+//                         @"You are a helpful assistant with access to the following product data:
+//
+//                         Columns:
+//                         - brand (string)
+//                         - price (decimal)
+//                         - weight_capacity_kg (float)
+//                         - waterproof (true/false)
+//                         - size (string)
+//                         - color (string)
+//                         - style (string)
+//                         - compartments (int)
+//
+//                         Respond to user questions using the data structure above. If possible, use tables, bullet points, or concise lists in your answers.
+//                         "
+//                         
+//
+//                     },
+//                     new { role = "user", content = _queryModel.Query }
+//                 },
+//                 max_tokens = 800,
+//                 temperature = 0.5
+//             };
+//
+//             request.Content = new StringContent(
+//                 System.Text.Json.JsonSerializer.Serialize(requestBody),
+//                 System.Text.Encoding.UTF8,
+//                 "application/json");
+//             
+//             // Instanciate   AzureOpenAI obj with  "AzureOpenAI" defined in the Project.cs
+//             var client = HttpClientFactory.CreateClient("AzureOpenAI");
+//             var response = await client.SendAsync(request);
+//             var content = await response.Content.ReadAsStringAsync();
+//             
+//             // For debug
+//             // Console.WriteLine("Request URI: " + request.RequestUri);
+//             // Console.WriteLine("BaseAddress: " + client.BaseAddress);
+//             // Console.WriteLine("Azure OpenAI Response: " + content);
+//
+//
+//             if (!response.IsSuccessStatusCode)
+//             {
+//                 _response = $"API Error: {response.StatusCode}\n{content}";
+//             }
+//             else
+//             {
+//                 var json = System.Text.Json.JsonDocument.Parse(content);
+//                 _response = json.RootElement
+//                     .GetProperty("choices")[0]
+//                     .GetProperty("message")
+//                     .GetProperty("content")
+//                     .GetString();
+//
+//                 // 表示切り替え
+//                 _showChart = _response.Contains("chart", StringComparison.OrdinalIgnoreCase);
+//
+//                 // JSチャート描画呼び出し
+//                 if (_showChart)
+//                     await JSRuntime.InvokeVoidAsync("renderChart");
+//             }
+//         }
+//         catch (Exception ex)
+//         {
+//             _response = $"Error: {ex.Message}";
+//         }
+//         finally
+//         {
+//             _isLoading = false;
+//         }
+//     } // end of step 1
+
+    //Step 2 (SQL translation)
     private async Task HandleSubmit()
+{
+    if (string.IsNullOrWhiteSpace(_queryModel.Query)) return;
+
+    _isLoading = true;
+    _response = string.Empty;
+    _showChart = false;
+
+    try
     {
+        // ① OpenAI への SQL生成用プロンプト
+        var deployment = "backpack-gpt-4o-mini";
+        var request = new HttpRequestMessage(HttpMethod.Post,
+            $"/openai/deployments/{deployment}/chat/completions?api-version=2025-01-01-preview");
 
-        if (string.IsNullOrWhiteSpace(_queryModel.Query))
-            return;
-
-        _isLoading = true;
-        _response = string.Empty;
-        _showChart = false;
-
-        try
+        var requestBody = new
         {
-            var deployment = "backpack-gpt-4o-mini"; // or read from config
-            // Set up request API,  BassAddress + relative URI
-            var request = new HttpRequestMessage(HttpMethod.Post,
-                $"/openai/deployments/{deployment}/chat/completions?api-version=2025-01-01-preview");
-
-
-            var requestBody = new
+            messages = new[]
             {
-                messages = new[]
-                {
-                    new { role = "system", content =
-                        @"You are a helpful assistant with access to the following product data:
+                new { role = "system", content = @"
+                    You are a SQL assistant that generates T-SQL queries for Microsoft SQL Server. 
+                    Generate a single SQL SELECT query based on the user's request. 
+                    Use the following table schema:
 
-                        Columns:
-                        - brand (string)
-                        - price (decimal)
-                        - weight_capacity_kg (float)
-                        - waterproof (true/false)
-                        - size (string)
-                        - color (string)
-                        - style (string)
-                        - compartments (int)
+                    Table: Products
+                    Columns:
+                    - brand (string)
+                    - price (decimal)
+                    - weight_capacity_kg (float)
+                    - waterproof (bool)
+                    - size (string)
+                    - color (string) — English only (e.g., 'Blue', 'Red', 'Black')
+                    - style (string)
+                    - compartments (int)
 
-                        Respond to user questions using the data structure above. If possible, use tables, bullet points, or concise lists in your answers.
-                        Please avoid markdown tables. Use bullet points or concise sentences."
-                        
-
-                    },
-                    new { role = "user", content = _queryModel.Query }
+                    Use only English values. Do not use translated or localized terms.  
+                    Only return the SQL query. Do not include explanations or markdown formatting.
+                    When selecting top N products ordered by price, avoid repeating rows with the same price. If multiple products share the same price, return only one per price."
                 },
-                max_tokens = 800,
-                temperature = 0.5
-            };
 
-            request.Content = new StringContent(
-                System.Text.Json.JsonSerializer.Serialize(requestBody),
-                System.Text.Encoding.UTF8,
-                "application/json");
-            
-            // Instanciate   AzureOpenAI obj with  "AzureOpenAI" defined in the Project.cs
-            var client = HttpClientFactory.CreateClient("AzureOpenAI");
-            var response = await client.SendAsync(request);
-            var content = await response.Content.ReadAsStringAsync();
-            
-            // For debug
-            // Console.WriteLine("Request URI: " + request.RequestUri);
-            // Console.WriteLine("BaseAddress: " + client.BaseAddress);
-            // Console.WriteLine("Azure OpenAI Response: " + content);
+                new { role = "user", content = _queryModel.Query }
+            },
+            max_tokens = 400,
+            temperature = 0.3
+        };
 
+        request.Content = new StringContent(
+            JsonSerializer.Serialize(requestBody),
+            Encoding.UTF8,
+            "application/json");
 
-            if (!response.IsSuccessStatusCode)
-            {
-                _response = $"API Error: {response.StatusCode}\n{content}";
-            }
-            else
-            {
-                var json = System.Text.Json.JsonDocument.Parse(content);
-                _response = json.RootElement
-                    .GetProperty("choices")[0]
-                    .GetProperty("message")
-                    .GetProperty("content")
-                    .GetString();
+        var client = HttpClientFactory.CreateClient("AzureOpenAI");
+        var response = await client.SendAsync(request);
+        var content = await response.Content.ReadAsStringAsync();
 
-                // 表示切り替え
-                _showChart = _response.Contains("chart", StringComparison.OrdinalIgnoreCase);
-
-                // JSチャート描画呼び出し
-                if (_showChart)
-                    await JSRuntime.InvokeVoidAsync("renderChart");
-            }
-        }
-        catch (Exception ex)
+        if (!response.IsSuccessStatusCode)
         {
-            _response = $"Error: {ex.Message}";
+            _response = $"API Error: {response.StatusCode}\n{content}";
+            return;
         }
-        finally
+
+        // ② SQLだけを抽出
+        var json = JsonDocument.Parse(content);
+        var sql = json.RootElement
+            .GetProperty("choices")[0]
+            .GetProperty("message")
+            .GetProperty("content")
+            .GetString();
+
+        Console.WriteLine("Generated SQL: " + sql);
+
+        // ③ SQLをAzure SQLで実行
+        using var conn = new SqlConnection(_config.GetConnectionString("DefaultConnection"));
+        await conn.OpenAsync();
+
+        using var cmd = new SqlCommand(sql, conn);
+        using var reader = await cmd.ExecuteReaderAsync();
+
+        // ④ 結果を動的に読み込む（列数・型に依存しない）
+        var results = new List<string>();
+        while (await reader.ReadAsync())
         {
-            _isLoading = false;
+            var row = new List<string>();
+            for (int i = 0; i < reader.FieldCount; i++)
+            {
+                var name = reader.GetName(i);
+                var value = reader.IsDBNull(i) ? "null" : reader.GetValue(i)?.ToString();
+                row.Add($"{name}: {value}");
+            }
+            results.Add(string.Join(", ", row));
         }
+
+        _response = results.Count > 0
+            ? string.Join("<br/>", results)
+            : "該当するデータは見つかりませんでした。";
     }
+    catch (Exception ex)
+    {
+        _response = $"Error: {ex.Message}";
+    }
+    finally
+    {
+        _isLoading = false;
+    }
+}
+
+    
+    
     
     
 
