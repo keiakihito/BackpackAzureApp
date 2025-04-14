@@ -4,7 +4,7 @@
 @inject AppDbContext Db
 @inject NavigationManager Nav
 
-<h3>製品情報の削除</h3>
+<h3>Delete product record</h3>
 
 @if (product == null)
 {
@@ -13,12 +13,12 @@
 else
 {
     <div class="alert alert-warning">
-        本当に <strong>@product.brand</strong> を削除しますか？
+         Delete <strong>@product.brand</strong> ？ Please make sure!
     </div>
 
     <div class="mt-3">
-        <button class="btn btn-danger me-2" @onclick="DeleteProduct">削除</button>
-        <button class="btn btn-secondary" @onclick="GoBack">キャンセル</button>
+        <button class="btn btn-danger me-2" @onclick="DeleteProduct">Delete</button>
+        <button class="btn btn-secondary" @onclick="GoBack">Cancel</button>
     </div>
 }
 

@@ -17,48 +17,48 @@ else
         <ValidationSummary/>
 
         <div class="mb-3">
-            <label>ブランド</label>
+            <label>Brand</label>
             <InputText class="form-control" @bind-Value="product.brand"/>
         </div>
 
         <div class="mb-3">
-            <label>価格</label>
+            <label>Price($)</label>
             <InputNumber class="form-control" @bind-Value="product.price"/>
         </div>
 
         <div class="mb-3">
-            <label>容量(kg)</label>
+            <label>Weight(kg)</label>
             <InputNumber class="form-control" @bind-Value="product.weight_capacity_kg"/>
         </div>
 
         <div class="mb-3 form-check">
             <InputCheckbox class="form-check-input" @bind-Value="product.waterproof"/>
-            <label class="form-check-label">撥水加工</label>
+            <label class="form-check-label">waterproof</label>
         </div>
 
         <div class="mb-3">
-            <label>サイズ</label>
+            <label>Size</label>
             <InputText class="form-control" @bind-Value="product.size"/>
         </div>
 
         <div class="mb-3">
-            <label>カラー</label>
+            <label>Color</label>
             <InputText class="form-control" @bind-Value="product.color"/>
         </div>
 
         <div class="mb-3">
-            <label>スタイル</label>
+            <label>Style</label>
             <InputText class="form-control" @bind-Value="product.style"/>
         </div>
 
         <div class="mb-3">
-            <label>収納数</label>
+            <label>Spaces</label>
             <InputNumber class="form-control" @bind-Value="product.compartments"/>
         </div>
 
         <div class="mt-3">
-            <button class="btn btn-primary me-2" type="submit">保存</button>
-            <button class="btn btn-secondary" type="button" @onclick="GoBack">キャンセル</button>
+            <button class="btn btn-primary me-2" type="submit">Save</button>
+            <button class="btn btn-secondary" type="button" @onclick="GoBack">Cancel</button>
         </div>
     </EditForm>
 }

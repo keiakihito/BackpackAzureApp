@@ -71,6 +71,12 @@
     private string _response = string.Empty;
     private bool _isLoading = false;
     private bool _showChart = false;
+    private string systemPrompt = @"
+                                  You are a helpful data assistant.
+                                  Only answer based on the provided backpack data.
+                                  Do not attempt to create, update, or delete any records.
+                                  Output a summary, and if appropriate, suggest filters or visual insights.
+                                  ";
 
     private class QueryModel
     {
@@ -99,6 +105,7 @@ private async Task HandleSubmit()
         {
             messages = new[]
             {
+                
                 new { role = "system", content = @"
                     You are a SQL assistant that generates T-SQL queries for Microsoft SQL Server. 
                     Generate a single SQL SELECT query based on the user's request. 
@@ -120,6 +127,7 @@ private async Task HandleSubmit()
                     Only return the SQL query. Do not include explanations or markdown formatting.
                     When selecting top N products ordered by price, avoid repeating rows with the same price. If multiple products share the same price, return only one per price.
                     When filtering by numeric values like price, use a range (e.g., BETWEEN 149.9 AND 150.1) instead of exact match." },
+                new { role = "system", content = systemPrompt },
                 new { role = "user", content = _queryModel.Query }
             },
             max_tokens = 400,
@@ -150,6 +158,14 @@ private async Task HandleSubmit()
             .Replace("```sql", "").Replace("```", "").Trim();
 
         Console.WriteLine("Generated SQL: " + sql);
+        
+        // AI responds disclaimer and return it to UI
+        if (!sql.Trim().ToUpper().StartsWith("SELECT"))
+        {
+            _response = sql;  
+            return;
+        }
+
 
         using var conn = new SqlConnection(_config.GetConnectionString("DefaultConnection"));
         await conn.OpenAsync();
@@ -172,7 +188,7 @@ private async Task HandleSubmit()
 
         if (resultsList.Count == 0)
         {
-            _response = "該当するデータは見つかりませんでした。";
+            _response = "There are not record to show. Please try another one!";
             return;
         }
 

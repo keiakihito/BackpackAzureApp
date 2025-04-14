@@ -26,6 +26,7 @@ obj/
 # User secrets
 secrets.json
 appsettings.Development.json
+appsettings.Staging.json
 
 # Build artifacts
 publish/

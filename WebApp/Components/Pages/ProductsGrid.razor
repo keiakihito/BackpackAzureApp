@@ -4,22 +4,22 @@
 @using WebApp.Data
 @rendermode InteractiveServer
 
-<h3>🎒バックパック一覧🎒</h3>
+<h3>🎒Backpack List🎒</h3>
 
 <QuickGrid TGridItem="Product"
            ItemsProvider="@ProvideProductsAsync"
            Pagination="@paginationState">
     <PropertyColumn Property="@(p => p.id)" Title="ID"/>
-    <PropertyColumn Property="@(p => p.brand)" Title="ブランド"/>
-    <PropertyColumn Property="@(p => p.price.ToString("F0"))" Title="価格($)"/>
-    <PropertyColumn Property="@(p => p.weight_capacity_kg.ToString("F2"))" Title="容量(kg)"/>
-    <PropertyColumn Property="@(p => p.waterproof)" Title="撥水"/>
-    <PropertyColumn Property="@(p => p.size)" Title="サイズ"/>
-    <PropertyColumn Property="@(p => p.color)" Title="カラー"/>
-    <PropertyColumn Property="@(p => p.style)" Title="スタイル"/>
-    <PropertyColumn Property="@(p => p.compartments)" Title="収納数"/>
+    <PropertyColumn Property="@(p => p.brand)" Title="Brand"/>
+    <PropertyColumn Property="@(p => p.price.ToString("F0"))" Title="Price($)"/>
+    <PropertyColumn Property="@(p => p.weight_capacity_kg.ToString("F2"))" Title="Weight(kg)"/>
+    @* <PropertyColumn Property="@(p => p.waterproof)" Title="Waterproof"/> *@
+    <PropertyColumn Property="@(p => p.size)" Title="Size"/>
+    <PropertyColumn Property="@(p => p.color)" Title="Color"/>
+    <PropertyColumn Property="@(p => p.style)" Title="Style"/>
+    <PropertyColumn Property="@(p => p.compartments)" Title="Spaces"/>
 
-    <TemplateColumn Title="操作">
+    <TemplateColumn Title="Action">
         <div class="d-flex gap-1　flex-nowrap">
             <NavLink class="btn btn-sm btn-outline-primary w-auto" href="@($"/products/edit/{context.id}")">
                 Edit

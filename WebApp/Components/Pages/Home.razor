@@ -1,20 +1,30 @@
 ﻿@page "/"
 
-<PageTitle>バックパックデータアシスタント</PageTitle>
+<PageTitle>Backpack Data Assistant</PageTitle>
 
-<h1>バックパックデータアシスタントへようこそ！</h1>
+<h1>Welcome to the Backpack Data Assistant!</h1>
 
 <p>
-    このアプリは、Azure SQL に登録されたバックパック製品データを元に、
-    <strong>自然言語でクエリ</strong>を投げたり、製品一覧をブラウザ上で閲覧できるよう設計されています。
+    This app lets you interact with backpack product data stored in Azure SQL through a natural language interface.  
+    Behind the scenes, your questions are converted into SQL queries—allowing you to explore data just by asking in plain English!
 </p>
 
 <ul>
-    <li>🧠 ChatGPTのような質問形式で <strong>価格・特徴・傾向</strong> を調べる</li>
-    <li>📊 一覧ページから <strong>実データを表形式で確認</strong>（ページネーション対応）</li>
-    <li>☁️ データはすべて <strong>Azure SQL</strong> に保存されています</li>
+    <li>🧠 Ask questions like a conversation and discover <strong>prices, features, and product trends</strong></li>
+    <li>📊 Browse the <strong>complete product list in a table format</strong> (with pagination)</li>
+    <li>☁️ All data is securely stored in <strong>Azure SQL</strong></li>
 </ul>
 
 <p>
-    左のメニューから「<strong>バックパック一覧</strong>」に進んで、全商品の情報を確認してみましょう。
+    Use the menu on the left to access the <strong>Backpack List</strong> and explore the dataset.
+</p>
+
+<p style="margin-top: 2rem; color: #666;">
+    🧪 <strong>Note:</strong> This app uses sample data for testing purposes.
+    You are free to <strong>edit or delete</strong> backpack entries via the UI to test CRUD functionality.
+    However, the AI assistant is <strong>read-only</strong> and does not modify any data.
+</p>
+
+<p style="margin-top: 2rem;">
+    🚧 <em>Chart visualization features are currently in development and will be added soon!</em>
 </p>
