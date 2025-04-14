@@ -13,12 +13,12 @@ jobs:
       - name: Checkout code
         uses: actions/checkout@v4
 
-      - name: Login to ACR
+      - name: Log in to ACR
         uses: docker/login-action@v2
         with:
-          app-name: backpack-ai-assistant
-          publish-profile: ${{ secrets.AZURE_WEBAPP_PUBLISH_PROFILE }}
-          images: backpackcrgstry.azurecr.io/backpackapp:latest
+          registry: backpackcrgstry.azurecr.io
+          username: ${{ secrets.REGISTRY_USERNAME }}
+          password: ${{ secrets.REGISTRY_PASSWORD }}
 
       - name: Build and push Docker image
         run: |
@@ -29,4 +29,5 @@ jobs:
         uses: azure/webapps-deploy@v2
         with:
           app-name: backpack-ai-assistant
+          publish-profile: ${{ secrets.AZURE_WEBAPP_PUBLISH_PROFILE }}
           images: backpackcrgstry.azurecr.io/backpackapp:latest
