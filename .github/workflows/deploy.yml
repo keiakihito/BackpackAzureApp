@@ -1,0 +1,32 @@
+name: Deploy to Azure Web App - backpack-ai-assistant
+
+on:
+  push:
+    branches:
+      - main
+
+jobs:
+  build-and-deploy:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Login to ACR
+        uses: docker/login-action@v2
+        with:
+          registry: backpackcrgstry.azurecr.io
+          username: ${{ secrets.REGISTRY_USERNAME }}
+          password: ${{ secrets.REGISTRY_PASSWORD }}
+
+      - name: Build and push Docker image
+        run: |
+          docker build -t backpackcrgstry.azurecr.io/backpackapp:latest .
+          docker push backpackcrgstry.azurecr.io/backpackapp:latest
+
+      - name: Deploy to Azure Web App
+        uses: azure/webapps-deploy@v2
+        with:
+          app-name: backpack-ai-assistant
+          images: backpackcrgstry.azurecr.io/backpackapp:latest

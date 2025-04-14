@@ -229,9 +229,10 @@ private async Task HandleSubmit()
         {
             messages = new[]
             {
-                new { role = "system", content = @"You are a helpful assistant. Summarize the following product data for a Japanese user. 
-Include the product ID in your explanation. Use bullet points or short sentences to clearly explain the products and highlight any notable differences. When describing prices, use 'dollars' or '$' as the unit. Do not convert currencies.
-Please summarize only the most important features. Do not repeat the entire data." },
+                new { role = "system", content = @"
+                    You are a helpful assistant. Summarize the following product data for a Japanese user. 
+                    Include the product ID in your explanation. Use bullet points or short sentences to clearly explain the products and highlight any notable differences. When describing prices, use 'dollars' or '$' as the unit. Do not convert currencies.
+                    Please summarize only the most important features. Do not repeat the entire data." },
                 new { role = "user", content = $"以下のデータを説明してください:\n{resultJson}" }
             },
             max_tokens = 600,
