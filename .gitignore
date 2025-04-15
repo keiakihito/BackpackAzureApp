@@ -27,6 +27,7 @@ obj/
 secrets.json
 appsettings.Development.json
 appsettings.Staging.json
+appsettings.Production.json
 
 # Build artifacts
 publish/
