@@ -9,7 +9,7 @@ This guide walks through the **step-by-step deployment** of a full-stack app (e.
 - GitHub repository set up (e.g., `BackpackAzureApp`)
 - Azure account (Azure for Students OK)
 - Local project includes Dockerfile and `appsettings.Development.json`
-
+- Note: Make suer copy ConnectionString to appsettings.Developmpment.json with PASSWORD. Azure portal has a placeholder {your_password}.
 ---
 
 ## ✅ Step 1: Containerize the app with Docker
