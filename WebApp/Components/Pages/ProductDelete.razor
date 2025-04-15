@@ -13,7 +13,19 @@
 else
 {
     <div class="alert alert-warning">
-         Delete <strong>@product.brand</strong> ？ Please make sure!
+        <p><strong>Would you surely delete this item below？</strong></p>
+
+        <ul>
+            <li><strong>Id:</strong> @product.id</li>
+            <li><strong>Brand:</strong> @product.brand</li>
+            <li><strong>Price:</strong> $@product.price</li>
+            <li><strong>Color:</strong> @product.color</li>
+            <li><strong>Size:</strong> @product.size</li>
+            <li><strong>Style:</strong> @product.style</li>
+            <li><strong>Compartments:</strong> @product.compartments</li>
+        </ul>
+
+        <p class="text-danger"><strong>⚠️Note: Unable to Redo after Delete! ⚠️</strong></p>
     </div>
 
     <div class="mt-3">
