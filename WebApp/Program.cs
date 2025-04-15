@@ -27,7 +27,10 @@ builder.Services.AddHttpClient("AzureOpenAI", client =>
 });
 
 
-// Add DbContext service
+// Register AppDbContext to service container in Azure
+// Instance is created in the view page based on user request
+// The instance is deleted once the DB action is done
+//DefaultConnection is a connection string from Azure DB resouce 
 builder.Services.AddDbContext<AppDbContext>(options =>
     options.UseSqlServer(builder.Configuration.GetConnectionString("DefaultConnection"))
 );

@@ -9,5 +9,6 @@ public class AppDbContext : DbContext
     {
         
     }
+    // Database table model property which enables to edit for record in DB
     public DbSet<Product> Products { get; set; } = default!;
 } // end of AppDbContext
