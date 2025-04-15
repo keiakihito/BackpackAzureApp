@@ -67,10 +67,11 @@
     </div>
 </div>
 @code {
-    private QueryModel _queryModel = new();
-    private string _response = string.Empty;
-    private bool _isLoading = false;
-    private bool _showChart = false;
+    // State in this page which is binding with UI
+    private QueryModel _queryModel = new(); // user input from UI text field 
+    private string _response = string.Empty; // Storing response from AI
+    private bool _isLoading = false; // Spiner
+    private bool _showChart = false; // Flag for render chart or not
     private string systemPrompt = @"
                                   You are a helpful data assistant.
                                   Only answer based on the provided backpack data.
@@ -82,212 +83,247 @@
     {
         public string Query { get; set; } = string.Empty;
     }
-
-// Step 2 and 3 (SQL文の結果を自然言語に)
-// Step 2 + Step 3 + Chart描画: SQL生成 → 実行 → 結果をOpenAIで自然文に要約 + JSグラフ化
-private async Task HandleSubmit()
-{
-    if (string.IsNullOrWhiteSpace(_queryModel.Query)) return;
-
-    _isLoading = true;
-    _response = string.Empty;
-    _showChart = false;
-
-    try
-    {
-        var deployment = "backpack-gpt-4o-mini";
-
-        // Step 2: SQL生成プロンプト
-        var request = new HttpRequestMessage(HttpMethod.Post,
-            $"/openai/deployments/{deployment}/chat/completions?api-version=2025-01-01-preview");
-
-        var requestBody = new
-        {
-            messages = new[]
-            {
-                
-                new { role = "system", content = @"
-                    You are a SQL assistant that generates T-SQL queries for Microsoft SQL Server. 
-                    Generate a single SQL SELECT query based on the user's request. 
-                    Use the following table schema:
-
-                    Table: Products
-                    Columns:
-                    - id (int)
-                    - brand (string)
-                    - price (decimal)
-                    - weight_capacity_kg (float)
-                    - waterproof (bool)
-                    - size (string)
-                    - color (string) — English only (e.g., 'Blue', 'Red', 'Black')
-                    - style (string)
-                    - compartments (int)
-
-                    Use only English values. Do not use translated or localized terms.  
-                    Only return the SQL query. Do not include explanations or markdown formatting.
-                    When selecting top N products ordered by price, avoid repeating rows with the same price. If multiple products share the same price, return only one per price.
-                    When filtering by numeric values like price, use a range (e.g., BETWEEN 149.9 AND 150.1) instead of exact match." },
-                new { role = "system", content = systemPrompt },
-                new { role = "user", content = _queryModel.Query }
-            },
-            max_tokens = 400,
-            temperature = 0.3
-        };
-
-        request.Content = new StringContent(
-            JsonSerializer.Serialize(requestBody),
-            Encoding.UTF8,
-            "application/json");
-
-        var client = HttpClientFactory.CreateClient("AzureOpenAI");
-        var response = await client.SendAsync(request);
-        var content = await response.Content.ReadAsStringAsync();
-
-        if (!response.IsSuccessStatusCode)
-        {
-            _response = $"API Error: {response.StatusCode}\n{content}";
-            return;
-        }
-
-        var json = JsonDocument.Parse(content);
-        var sql = json.RootElement
-            .GetProperty("choices")[0]
-            .GetProperty("message")
-            .GetProperty("content")
-            .GetString()
-            .Replace("```sql", "").Replace("```", "").Trim();
-
-        Console.WriteLine("Generated SQL: " + sql);
-        
-        // AI responds disclaimer and return it to UI
-        if (!sql.Trim().ToUpper().StartsWith("SELECT"))
-        {
-            _response = sql;  
-            return;
-        }
-
-
-        using var conn = new SqlConnection(_config.GetConnectionString("DefaultConnection"));
-        await conn.OpenAsync();
-
-        using var cmd = new SqlCommand(sql, conn);
-        using var reader = await cmd.ExecuteReaderAsync();
-
-        var resultsList = new List<Dictionary<string, string>>();
-        while (await reader.ReadAsync())
-        {
-            var row = new Dictionary<string, string>();
-            for (int i = 0; i < reader.FieldCount; i++)
-            {
-                var name = reader.GetName(i);
-                var value = reader.IsDBNull(i) ? "null" : reader.GetValue(i)?.ToString();
-                row[name] = value;
-            }
-            resultsList.Add(row);
-        }
-
-        if (resultsList.Count == 0)
-        {
-            _response = "There are not record to show. Please try another one!";
-            return;
-        }
-
-        // Step 3: 集計クエリ検出 → 直接表示 or チャート描画
-        if (sql.ToUpper().Contains("COUNT(") || sql.ToUpper().Contains("AVG(") || sql.ToUpper().Contains("SUM("))
-        {
-            var firstRow = resultsList.First();
-            var responseParts = firstRow.Select(kv => $"{kv.Key}: {kv.Value}");
-            _response = string.Join(", ", responseParts);
-
-            var chartData = firstRow.Select(kv => new { label = kv.Key, value = decimal.TryParse(kv.Value, out var v) ? v : 0 }).ToList();
-            _showChart = true;
-            await JSRuntime.InvokeVoidAsync("renderChart", chartData);
-            return;
-        }
-
-        // 通常の価格グラフ（brand単位）
-        var priceChart = resultsList
-            .Where(r => r.ContainsKey("brand") && r.ContainsKey("price"))
-            .Select(r => new
-            {
-                label = r["brand"],
-                value = decimal.TryParse(r["price"], out var v) ? v : 0
-            }).ToList();
-
-        if (priceChart.Count > 1)
-        {
-            _showChart = true;
-            await JSRuntime.InvokeVoidAsync("renderChart", priceChart);
-        }
-
-        // ヒストグラム：price × frequency 対応
-        var histogramChart = resultsList
-            .Where(r => r.ContainsKey("price") && r.ContainsKey("frequency"))
-            .Select(r => new
-            {
-                label = r["price"],
-                value = int.TryParse(r["frequency"], out var v) ? v : 0
-            }).ToList();
-
-        if (histogramChart.Count > 1)
-        {
-            _showChart = true;
-            await JSRuntime.InvokeVoidAsync("renderChart", histogramChart);
-        }
-
-        var resultJson = JsonSerializer.Serialize(resultsList.Take(20), new JsonSerializerOptions { WriteIndented = true });
-
-        // Step 3: AIによる自然文要約
-        var summaryRequest = new HttpRequestMessage(HttpMethod.Post,
-            $"/openai/deployments/{deployment}/chat/completions?api-version=2025-01-01-preview");
-
-        var summaryBody = new
-        {
-            messages = new[]
-            {
-                new { role = "system", content = @"
-                    You are a helpful assistant. Summarize the following product data for a Japanese user. 
-                    Include the product ID in your explanation. Use bullet points or short sentences to clearly explain the products and highlight any notable differences. When describing prices, use 'dollars' or '$' as the unit. Do not convert currencies.
-                    Please summarize only the most important features. Do not repeat the entire data." },
-                new { role = "user", content = $"以下のデータを説明してください:\n{resultJson}" }
-            },
-            max_tokens = 600,
-            temperature = 0.5
-        };
-
-        summaryRequest.Content = new StringContent(
-            JsonSerializer.Serialize(summaryBody),
-            Encoding.UTF8,
-            "application/json");
-
-        var summaryResponse = await client.SendAsync(summaryRequest);
-        var summaryContent = await summaryResponse.Content.ReadAsStringAsync();
-
-        if (!summaryResponse.IsSuccessStatusCode)
-        {
-            _response = $"Summary Error: {summaryResponse.StatusCode}\n{summaryContent}";
-            return;
-        }
-
-        var summaryJson = JsonDocument.Parse(summaryContent);
-        var summary = summaryJson.RootElement
-            .GetProperty("choices")[0]
-            .GetProperty("message")
-            .GetProperty("content")
-            .GetString();
-
-        _response = summary;
-    }
-    catch (Exception ex)
-    {
-        _response = $"Error: {ex.Message}";
-    }
-    finally
-    {
-        _isLoading = false;
-    }
-}
     
+    //User Query => SQL => DB connect => Explain in Natural Language +
+    //JS graph rendering is still working on.
+    private async Task HandleSubmit()
+    {
+        // Edge case handling
+        if (string.IsNullOrWhiteSpace(_queryModel.Query)) return;
+    
+        // Initialize states
+        _isLoading = true;
+        _response = string.Empty;
+        _showChart = false;
+
+        
+        try
+        {
+            var deployment = "backpack-gpt-4o-mini";
+
+            // Step 1: Natural Language(User input) => SQL
+            // Make request with OpenAI resource in Azure
+            var request = new HttpRequestMessage(HttpMethod.Post,
+                $"/openai/deployments/{deployment}/chat/completions?api-version=2025-01-01-preview");
+
+            var requestBody = new
+            {
+                messages = new[]
+                {
+                    
+                    new { role = "system", content = @"
+                        You are a SQL assistant that generates T-SQL queries for Microsoft SQL Server. 
+                        Generate a single SQL SELECT query based on the user's request. 
+                        Use the following table schema:
+
+                        Table: Products
+                        Columns:
+                        - id (int)
+                        - brand (string)
+                        - price (decimal)
+                        - weight_capacity_kg (float)
+                        - waterproof (bool)
+                        - size (string)
+                        - color (string) — English only (e.g., 'Blue', 'Red', 'Black')
+                        - style (string)
+                        - compartments (int)
+
+                        Use only English values. Do not use translated or localized terms.  
+                        Only return the SQL query. Do not include explanations or markdown formatting.
+                        When selecting top N products ordered by price, avoid repeating rows with the same price. If multiple products share the same price, return only one per price.
+                        When filtering by numeric values like price, use a range (e.g., BETWEEN 149.9 AND 150.1) instead of exact match." },
+                    new { role = "system", content = systemPrompt },
+                    new { role = "user", content = _queryModel.Query }
+                },
+                max_tokens = 400,
+                temperature = 0.3
+            };
+            
+            // Set request body as JSON for Chat Completions API
+            // Contains system + user messages for prompt engineering
+            request.Content = new StringContent(
+                JsonSerializer.Serialize(requestBody),
+                Encoding.UTF8,
+                "application/json");
+            
+            // Get the pre-configured HTTP client for Azure OpenAI (defined in Program.cs)
+            var client = HttpClientFactory.CreateClient("AzureOpenAI");
+            
+            // Send the HTTP POST request to Azure OpenAI and read the response as string
+            var response = await client.SendAsync(request);
+            var content = await response.Content.ReadAsStringAsync();
+        
+            // If API call failed, display error to user and exit
+            if (!response.IsSuccessStatusCode)
+            {
+                _response = $"API Error: {response.StatusCode}\n{content}";
+                return;
+            }
+            
+            // Parse the response JSON and extract the SQL query string from "message.content"
+            var json = JsonDocument.Parse(content);
+            var sql = json.RootElement
+                .GetProperty("choices")[0]
+                .GetProperty("message")
+                .GetProperty("content")
+                .GetString()
+                .Replace("```sql", "").Replace("```", "").Trim();
+
+            Console.WriteLine("Generated SQL: " + sql);
+            
+            // If AI returns a disclaimer (e.g., about delete/insert not allowed), show it directly to the user
+            // Ex "The system cannot delete record" when user ask delete.
+            if (!sql.Trim().ToUpper().StartsWith("SELECT"))
+            {
+                _response = sql;  
+                return;
+            }
+            
+            // Step 2 SQL => Azure
+            // Execute the generated SQL query against Azure SQL
+            using var conn = new SqlConnection(_config.GetConnectionString("DefaultConnection"));
+            await conn.OpenAsync();
+            
+            // Execute SQL command in AzureDB
+            using var cmd = new SqlCommand(sql, conn);
+            using var reader = await cmd.ExecuteReaderAsync();
+            
+            // Step 2.1: Convert DB result rows into a list of dictionaries
+            // Each dictionary represents one row (column name → value)
+            var resultsList = new List<Dictionary<string, string>>();
+            while (await reader.ReadAsync())
+            {
+                var row = new Dictionary<string, string>();
+                for (int i = 0; i < reader.FieldCount; i++)
+                {
+                    var name = reader.GetName(i);
+                    var value = reader.IsDBNull(i) ? "null" : reader.GetValue(i)?.ToString();
+                    row[name] = value;
+                }
+                resultsList.Add(row);
+            }
+            
+            // Handle no result
+            if (resultsList.Count == 0)
+            {
+                _response = "There are not record to show. Please try another one!";
+                return;
+            }
+            
+            
+            // Step 2.2: Detect statistical query (COUNT, AVG, SUM) and display directly
+            if (sql.ToUpper().Contains("COUNT(") || sql.ToUpper().Contains("AVG(") || sql.ToUpper().Contains("SUM("))
+            {
+                var firstRow = resultsList.First();
+                var responseParts = firstRow.Select(kv =>
+                {
+                    // Show e-2 point for stats data
+                    if (decimal.TryParse(kv.Value, out var d))
+                        return $"{kv.Key}: {d.ToString("F2")}";
+                    else
+                        return $"{kv.Key}: {kv.Value}";
+                });
+
+                _response = string.Join(", ", responseParts);
+
+                var chartData = firstRow.Select(kv => new { label = kv.Key, value = decimal.TryParse(kv.Value, out var v) ? v : 0 }).ToList();
+                _showChart = true;
+                await JSRuntime.InvokeVoidAsync("renderChart", chartData);
+                return;
+            }
+            
+            
+            //~~ In progress for rendering chart ~~~~~~~
+            // 通常の価格グラフ（brand単位）
+            var priceChart = resultsList
+                .Where(r => r.ContainsKey("brand") && r.ContainsKey("price"))
+                .Select(r => new
+                {
+                    label = r["brand"],
+                    value = decimal.TryParse(r["price"], out var v) ? v : 0
+                }).ToList();
+
+            if (priceChart.Count > 1)
+            {
+                _showChart = true;
+                await JSRuntime.InvokeVoidAsync("renderChart", priceChart);
+            }
+            
+            // ヒストグラム：price × frequency 対応
+            var histogramChart = resultsList
+                .Where(r => r.ContainsKey("price") && r.ContainsKey("frequency"))
+                .Select(r => new
+                {
+                    label = r["price"],
+                    value = int.TryParse(r["frequency"], out var v) ? v : 0
+                }).ToList();
+
+            if (histogramChart.Count > 1)
+            {
+                _showChart = true;
+                await JSRuntime.InvokeVoidAsync("renderChart", histogramChart);
+            }
+
+            var resultJson = JsonSerializer.Serialize(resultsList.Take(20), new JsonSerializerOptions { WriteIndented = true });
+            // ~~~~~~~~until here In progress for rendering chart~~~~~~~~
+            
+            
+            
+            // Step 3: SQL => Natural Language description
+            // Create HttpRequest object for summary generation
+            var summaryRequest = new HttpRequestMessage(HttpMethod.Post,
+                $"/openai/deployments/{deployment}/chat/completions?api-version=2025-01-01-preview");
+
+            var summaryBody = new
+            {
+                messages = new[]
+                {
+                    new { role = "system", content = @"
+                        You are a helpful assistant. Summarize the following product data for a Japanese user. 
+                        Include the product ID in your explanation. Use bullet points or short sentences to clearly explain the products and highlight any notable differences. When describing prices, use 'dollars' or '$' as the unit. Do not convert currencies.
+                        Please summarize only the most important features. Do not repeat the entire data." },
+                    new { role = "user", content = $"Please explain the data:\n{resultJson}" }
+                },
+                max_tokens = 600,
+                temperature = 0.5
+            };
+            
+            // Set Json format to send the request to OpenAI resource.
+            summaryRequest.Content = new StringContent(
+                JsonSerializer.Serialize(summaryBody),
+                Encoding.UTF8,
+                "application/json");
+            
+            // Send and receive request from AzureOpenAI
+            var summaryResponse = await client.SendAsync(summaryRequest);
+            var summaryContent = await summaryResponse.Content.ReadAsStringAsync();
+
+            if (!summaryResponse.IsSuccessStatusCode)
+            {
+                _response = $"Summary Error: {summaryResponse.StatusCode}\n{summaryContent}";
+                return;
+            }
+            
+            // Extract strings from Json as a final response to bind UI
+            var summaryJson = JsonDocument.Parse(summaryContent);
+            var summary = summaryJson.RootElement
+                .GetProperty("choices")[0]
+                .GetProperty("message")
+                .GetProperty("content")
+                .GetString();
+
+            _response = summary;
+        }
+        catch (Exception ex)
+        {
+            _response = $"Error: {ex.Message}";
+        }
+        finally
+        {
+            _isLoading = false;
+        }
+    }
+        
 
     
     //end of code
