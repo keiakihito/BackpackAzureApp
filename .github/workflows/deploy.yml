@@ -22,7 +22,7 @@ jobs:
 
       - name: Build and push Docker image
         run: |
-          docker build -t backpackcrgstry.azurecr.io/backpackapp:latest .
+          docker build --no-cache -t backpackcrgstry.azurecr.io/backpackapp:latest .
           docker push backpackcrgstry.azurecr.io/backpackapp:latest
 
       - name: Deploy to Azure Web App
