@@ -21,9 +21,19 @@ and hard to extend for other URI.
 */
 builder.Services.AddHttpClient("AzureOpenAI", client =>
 {
+    var endpoint = builder.Configuration["AzureOpenAI:Endpoint"];
+    var apiKey = builder.Configuration["AzureOpenAI:ApiKey"];
+    
+    // For debug
+    Console.WriteLine($"🔍 AzureOpenAI Endpoint: {endpoint}");
+    Console.WriteLine($"🔍 AzureOpenAI ApiKey is null? {string.IsNullOrEmpty(apiKey)}");
+
+    client.BaseAddress = new Uri(endpoint);
+    client.DefaultRequestHeaders.Add("api-key", apiKey);
+    
     // Dependency Injection for various class, calling DI container which creates and manages objects 
-    client.BaseAddress = new Uri(builder.Configuration["AzureOpenAI:Endpoint"]);
-    client.DefaultRequestHeaders.Add("api-key", builder.Configuration["AzureOpenAI:ApiKey"]);
+    // client.BaseAddress = new Uri(builder.Configuration["AzureOpenAI:Endpoint"]);
+    // client.DefaultRequestHeaders.Add("api-key", builder.Configuration["AzureOpenAI:ApiKey"]);
 });
 
 
