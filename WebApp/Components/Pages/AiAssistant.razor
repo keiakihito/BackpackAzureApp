@@ -280,6 +280,7 @@ private async Task HandleSubmit()
     }
     catch (Exception ex)
     {
+        Console.WriteLine("⚠️ AI request failed: " + ex.ToString()); 
         _response = $"Error: {ex.Message}";
     }
     finally
